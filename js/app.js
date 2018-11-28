@@ -41,6 +41,14 @@ $(document).ready(function(){
   };
   // getRepoActivity(, 'github-api-access');
 
+  // callback function to show user
+  function showUser(data, status){
+      console.log(status);
+      var username = "<h3>" + data.login + "</h3>";
+      $("#username").append(username);
+      // debugger;
+  };
+
 
 
   getRepoActivity(function (git_data){
@@ -125,5 +133,51 @@ function drawBarChart(data){
         .attr("width", x.rangeBand())
         .attr("y", function(d) { return y(d.plays); })
         .attr("height", function(d) { return height - y(d.plays); });
+}
+function drawBubbleChart(git_data){
+  console.log(git_data)
+  format = d3.format(",d")
+  pack = data => d3.pack()
+  .size([width - 2, height - 2])
+  .padding(3)
+(d3.hierarchy({children: data})
+  .sum(d => d.total))
 
+  data = git_data
+  width = 600;
+  height = 600;
+  max_value = data[0].total;
+  color = function (alpha){
+    return "rgb(52, 152, 219,"+(alpha * 0.8 + 0.2)+")";
+  }
+  const root = pack(data);
+  console.log(root)
+  const svg = d3.select("body").append("svg")
+      .style("width", width+"px")
+      .style("height", height+"px")
+      .attr("font-size", 10)
+      .attr("font-family", "sans-serif")
+      .attr("text-anchor", "middle");
+
+  const leaf = svg.selectAll("g")
+    .data(root.leaves())
+    .enter().append("g")
+    .attr("transform", d => `translate(${d.x + 1},${d.y + 1})`)
+  leaf.append("circle")
+      .attr("r", d => d.r)
+      .attr("fill-opacity", 0.7)
+      .attr("fill", d => color(d.data.total/max_value));
+
+  leaf.append("text")
+      .attr("clip-path", d => d.clipUid)
+    .selectAll("tspan")
+    .data(d => d.data.login.split(/(?=[A-Z][^A-Z])/g))
+    .enter().append("tspan")
+      .attr("x", 0)
+      .text(d => d);
+
+  leaf.append("title")
+      .text(d => `${d.data.login}\n${format(d.data.total)}`);
+    
+  return svg.node();
 }
